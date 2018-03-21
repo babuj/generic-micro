@@ -2,19 +2,20 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
-
-	"github.com/julienschmidt/httprouter"
 )
 
-func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Fprint(w, "Welcome!\n")
+func Index(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "Name of the service : "+name()+"\n")
 }
 
-func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "Hello, %s!\n", ps.ByName("name"))
+func Echo(w http.ResponseWriter, r *http.Request) {
+	text := r.URL.Query()["text"][0]
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "text-plain")
+	fmt.Fprintf(w, text)
 }
 
 func port() string {
@@ -25,10 +26,17 @@ func port() string {
 	return ":" + port
 }
 
+func name() string {
+	name := os.Getenv("NAME")
+	if len(name) == 0 {
+		name = "echo"
+	}
+	return name
+}
+
 func main() {
-	fmt.Println("Starting the hello Greet service at " + port() + " port.")
-	router := httprouter.New()
-	router.GET("/", Index)
-	router.GET("/hello/:name", Hello)
-	log.Fatal(http.ListenAndServe(port(), router))
+	fmt.Println("Starting the " + name() + " service at " + port() + " port.")
+	http.HandleFunc("/", Index)
+	http.HandleFunc("/echo", Echo)
+	http.ListenAndServe(port(), nil)
 }
